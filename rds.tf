@@ -1,37 +1,52 @@
+# =========================================================
+# RDS MySQL
+# - 카드망/증권망 각각 RDS MySQL 생성
+# - card-vpc       : card RDS
+# - securities-vpc : securities RDS
+# =========================================================
+
 resource "aws_db_subnet_group" "rds_data" {
-  name        = "${var.project}-${var.env}-rds-data-subnet-group"
-  description = "RDS DB subnet group using private data subnets"
-  subnet_ids  = var.data_subnet_ids
+  for_each = var.rds_networks
+
+  name        = "${var.project}-${var.env}-${each.key}-rds-data-subnet-group"
+  description = "RDS DB subnet group for ${each.key} private data subnets"
+  subnet_ids  = each.value.data_subnet_ids
 
   tags = {
-    Name    = "${var.project}-${var.env}-rds-data-subnet-group"
+    Name    = "${var.project}-${var.env}-${each.key}-rds-data-subnet-group"
     Project = var.project
     Env     = var.env
+    Network = each.key
     Layer   = "data"
   }
 }
 
 resource "aws_db_instance" "mysql" {
-  identifier = "${var.project}-${var.env}-mysql"
+  for_each = var.rds_networks
 
-  engine         = "mysql"    # MYSQL RDS 생성
+  identifier = "${var.project}-${var.env}-${each.key}-mysql"
+
+  engine         = "mysql"
   engine_version = "8.0"
   instance_class = var.db_instance_class
 
-  allocated_storage     = 20
-  max_allocated_storage = 100
+  allocated_storage     = var.allocated_storage
+  max_allocated_storage = var.max_allocated_storage
   storage_type          = "gp3"
   storage_encrypted     = true
 
-  db_name  = var.db_name
-  username = var.db_username
-  password = var.db_password
+  db_name  = each.value.db_name
+  username = each.value.db_username
+  password = var.db_passwords[each.key]
 
-  db_subnet_group_name   = aws_db_subnet_group.rds_data.name   # 어느 Subnet 후보에 둘지
-  vpc_security_group_ids = [aws_security_group.rds_mysql.id]   # RDS에 붙일 Security Group
+  db_subnet_group_name = aws_db_subnet_group.rds_data[each.key].name
 
-  multi_az            = true     # Primary/Standby 구성
-  publicly_accessible = false    # 외부 인터넷 접근 차단
+  vpc_security_group_ids = [
+    aws_security_group.rds_mysql[each.key].id
+  ]
+
+  multi_az            = var.rds_multi_az
+  publicly_accessible = false
 
   backup_retention_period = 7
   backup_window           = "18:00-19:00"
@@ -42,9 +57,10 @@ resource "aws_db_instance" "mysql" {
   skip_final_snapshot        = true
 
   tags = {
-    Name    = "${var.project}-${var.env}-mysql"
+    Name    = "${var.project}-${var.env}-${each.key}-mysql"
     Project = var.project
     Env     = var.env
+    Network = each.key
     Layer   = "data"
   }
 }
