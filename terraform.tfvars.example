@@ -1,0 +1,27 @@
+aws_region = "ap-northeast-2"
+
+project = "wonhaeyo"
+env     = "dev"
+
+vpc_id = "vpc-xxxxxxxx"
+
+data_subnet_ids = [
+  "subnet-aaaaaaaa",
+  "subnet-cccccccc"
+]
+
+eks_app_security_group_id = "sg-eeeeeeee"
+
+db_name          = "wonhaeyo"
+db_username      = "admin"
+db_password      = "CHANGE_ME"
+redis_auth_token = "CHANGE_ME"
+
+db_instance_class = "db.t4g.micro"
+redis_node_type   = "cache.t3.micro"
+
+allocated_storage = 20
+
+rds_multi_az     = false
+redis_multi_az   = false
+redis_node_count = 1
