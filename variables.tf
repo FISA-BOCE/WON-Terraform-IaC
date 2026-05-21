@@ -1,5 +1,9 @@
+# =========================================================
+# Common
+# =========================================================
+
 variable "aws_region" {
-  description = "AWS Region"
+  description = "AWS region"
   type        = string
   default     = "ap-northeast-2"
 }
@@ -16,53 +20,138 @@ variable "env" {
   default     = "dev"
 }
 
-variable "vpc_id" {
-  description = "VPC ID"
-  type        = string
+# =========================================================
+# Network - Existing VPC / Subnet / Security Group
+# =========================================================
+
+variable "rds_networks" {
+  description = "RDS network definitions for card and securities"
+  type = map(object({
+    vpc_id          = string
+    data_subnet_ids = list(string)
+    db_name         = string
+    db_username     = string
+  }))
 }
 
-variable "data_subnet_ids" {
-  description = "Private Data Subnet IDs across two AZs. Used by both RDS and Redis subnet groups."
-  type        = list(string)
-}
-
-variable "eks_app_security_group_id" {
-  description = "Security Group ID used by EKS WAS nodes or pods"
-  type        = string
-}
-
-variable "db_name" {
-  description = "Initial database name"
-  type        = string
-  default     = "wonhaeyo"
-}
-
-variable "db_username" {
-  description = "RDS master username"
-  type        = string
-  default     = "admin"
-}
-
-variable "db_password" {
-  description = "RDS master password"
-  type        = string
+variable "db_passwords" {
+  description = "RDS passwords by network"
+  type        = map(string)
   sensitive   = true
 }
+
+# =========================================================
+# RDS - Keep Existing RDS Variables
+# =========================================================
+
 
 variable "db_instance_class" {
   description = "RDS instance class"
   type        = string
-  default     = "db.t3.micro"
+  default     = "db.t4g.micro"
 }
 
-variable "redis_node_type" {
-  description = "Redis node type"
+variable "allocated_storage" {
+  description = "Allocated storage size for RDS"
+  type        = number
+  default     = 20
+}
+
+variable "max_allocated_storage" {
+  description = "Maximum allocated storage size for RDS autoscaling"
+  type        = number
+  default     = 100
+}
+
+variable "rds_multi_az" {
+  description = "Whether to enable Multi-AZ for RDS"
+  type        = bool
+  default     = true
+}
+
+# =========================================================
+# EC2 Common
+# Redis EC2에서 공통으로 사용하는 값
+# =========================================================
+
+variable "ec2_ami_id" {
+  description = "Ubuntu 24.04 LTS AMI ID for Redis EC2 instances"
   type        = string
-  default     = "cache.t3.micro"
+  default     = "ami-0765f9741eedf9c7b"
 }
 
-variable "redis_auth_token" {
-  description = "Redis AUTH token"
+variable "ec2_key_name" {
+  description = "EC2 key pair name"
+  type        = string
+  default     = "boce-keypair"
+}
+
+variable "ec2_associate_public_ip_address" {
+  description = "Whether to associate public IP address to EC2 instances"
+  type        = bool
+  default     = false
+}
+
+# =========================================================
+# Redis EC2
+# =========================================================
+
+variable "redis_instance_type" {
+  description = "EC2 instance type for Redis nodes"
+  type        = string
+  default     = "m6i.large"
+}
+
+variable "redis_root_volume_size" {
+  description = "Root EBS volume size for Redis EC2 instances"
+  type        = number
+  default     = 10
+}
+
+variable "redis_root_volume_type" {
+  description = "Root EBS volume type for Redis EC2 instances"
+  type        = string
+  default     = "gp3"
+}
+
+variable "redis_port" {
+  description = "Redis service port"
+  type        = number
+  default     = 6379
+}
+
+variable "redis_password" {
+  description = "Redis password used in redis.conf requirepass"
   type        = string
   sensitive   = true
+}
+
+# =========================================================
+# Redis Networks
+# 카드망 / 증권망 Redis가 각각 어떤 VPC와 SG를 쓰는지 정의
+# 실제 값은 terraform.tfvars에 넣음
+# =========================================================
+
+variable "redis_networks" {
+  description = "Network definitions for Redis EC2 nodes"
+  type = map(object({
+    vpc_name = string
+    vpc_cidr = string
+  }))
+}
+
+# =========================================================
+# Redis Nodes
+# 카드 Redis 3대 + 증권 Redis 3대를 같은 redis.tf에서 for_each로 생성
+# =========================================================
+
+variable "redis_nodes" {
+  description = "Redis EC2 node definitions"
+  type = map(object({
+    name        = string
+    network_key = string
+    subnet_name = string
+    subnet_cidr = string
+    private_ip  = string
+  }))
 }
