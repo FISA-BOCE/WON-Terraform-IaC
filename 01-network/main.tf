@@ -155,6 +155,16 @@ resource "aws_vpc" "this" {
   })
 }
 
+resource "aws_default_security_group" "this" {
+  for_each = aws_vpc.this
+  vpc_id  = each.value.id
+  ingress = []
+  egress  = []
+  tags = merge(var.default_tags, {
+    Name = "${local.vpcs[each.key].name}-default-sg"
+  })
+}
+
 resource "aws_subnet" "this" {
   for_each = local.subnets
 
