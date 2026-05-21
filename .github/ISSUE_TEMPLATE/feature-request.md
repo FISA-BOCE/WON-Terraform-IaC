@@ -1,9 +1,10 @@
 ---
 name: Feature request
-about: 기능 개발
+about: 기능 개발시
 title: ''
 labels: ''
 assignees: ''
+type: Feature
 
 ---
 
