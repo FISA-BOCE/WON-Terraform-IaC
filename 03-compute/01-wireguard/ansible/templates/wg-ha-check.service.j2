@@ -1,0 +1,9 @@
+# [ADD] This file is managed by Ansible.
+[Unit]
+Description=WireGuard HA route health check
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart={{ ha_script_path }}

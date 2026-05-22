@@ -1,0 +1,9 @@
+wg_port: 51820
+wireguard_interface: "wg0"
+ha_ping_fail_threshold: 2
+ha_ping_interval_seconds: 3
+ha_cooldown_seconds: 0
+ha_takeover_on_peer_ping_fail_when_aws_ok: "false"
+ha_state_dir: /var/lib/wg-ha
+ha_env_path: /etc/wg-ha.env
+ha_script_path: /usr/local/bin/wg-ha-check.sh

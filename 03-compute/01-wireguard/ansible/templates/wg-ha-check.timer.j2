@@ -1,0 +1,11 @@
+# [ADD] This file is managed by Ansible.
+[Unit]
+Description=Run WireGuard HA route health check every 3 seconds
+
+[Timer]
+OnBootSec=20
+OnUnitActiveSec=3
+AccuracySec=1
+
+[Install]
+WantedBy=timers.target

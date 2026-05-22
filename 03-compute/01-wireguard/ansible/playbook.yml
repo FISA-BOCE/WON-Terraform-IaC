@@ -1,0 +1,199 @@
+---
+- name: Configure WireGuard HA pairs
+  hosts: wireguard
+  become: true
+
+  tasks:
+    - name: Wait for SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 120
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install WireGuard and required packages
+      ansible.builtin.apt:
+        name:
+          - wireguard
+          - iptables
+          - curl
+          - unzip
+          - iputils-ping
+          - util-linux
+        state: present
+
+    - name: Check whether AWS CLI is already installed
+      ansible.builtin.command: aws --version
+      register: aws_cli_check
+      changed_when: false
+      failed_when: false
+
+    - name: Set AWS CLI architecture
+      ansible.builtin.set_fact:
+        awscli_arch: "{{ 'aarch64' if ansible_architecture in ['aarch64', 'arm64'] else 'x86_64' }}"
+
+    - name: Download AWS CLI v2 installer
+      ansible.builtin.get_url:
+        url: "https://awscli.amazonaws.com/awscli-exe-linux-{{ awscli_arch }}.zip"
+        dest: /tmp/awscliv2.zip
+        mode: "0644"
+      when: aws_cli_check.rc != 0
+
+    - name: Remove old temporary AWS CLI installer directory
+      ansible.builtin.file:
+        path: /tmp/aws
+        state: absent
+      when: aws_cli_check.rc != 0
+
+    - name: Unzip AWS CLI v2 installer
+      ansible.builtin.unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp
+        remote_src: true
+      when: aws_cli_check.rc != 0
+
+    - name: Install AWS CLI v2
+      ansible.builtin.command: /tmp/aws/install
+      args:
+        creates: /usr/local/bin/aws
+      when: aws_cli_check.rc != 0
+
+    - name: Ensure /etc/wireguard exists
+      ansible.builtin.file:
+        path: /etc/wireguard
+        state: directory
+        owner: root
+        group: root
+        mode: "0700"
+
+    - name: Generate WireGuard private key if missing
+      ansible.builtin.shell: |
+        umask 077
+        test -f /etc/wireguard/privatekey || wg genkey > /etc/wireguard/privatekey
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Generate WireGuard public key
+      ansible.builtin.shell: |
+        wg pubkey < /etc/wireguard/privatekey > /etc/wireguard/publickey
+      args:
+        executable: /bin/bash
+      changed_when: false
+
+    - name: Read WireGuard private key
+      ansible.builtin.command: cat /etc/wireguard/privatekey
+      register: wg_private_key
+      changed_when: false
+      no_log: true
+
+    - name: Read WireGuard public key
+      ansible.builtin.command: cat /etc/wireguard/publickey
+      register: wg_public_key
+      changed_when: false
+
+    - name: Print EC2 WireGuard public key
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }} public key = {{ wg_public_key.stdout }}"
+
+    - name: Enable IPv4 forwarding permanently
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/99-wireguard-forward.conf
+        content: |
+          net.ipv4.ip_forward=1
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Apply sysctl
+      ansible.builtin.command: sysctl --system
+      changed_when: false
+
+    - name: Create WireGuard config
+      ansible.builtin.template:
+        src: templates/wg0.conf.j2
+        dest: /etc/wireguard/wg0.conf
+        owner: root
+        group: root
+        mode: "0600"
+      notify: Restart WireGuard
+
+    - name: Enable and start WireGuard
+      ansible.builtin.systemd:
+        name: wg-quick@wg0
+        enabled: true
+        state: started
+
+    - name: Ensure WireGuard HA state directory exists
+      ansible.builtin.file:
+        path: "{{ ha_state_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Deploy WireGuard HA environment file
+      ansible.builtin.template:
+        src: templates/wg-ha.env.j2
+        dest: "{{ ha_env_path }}"
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart WireGuard HA timer
+
+    - name: Deploy WireGuard HA check script
+      ansible.builtin.copy:
+        src: files/wg-ha-check.sh
+        dest: "{{ ha_script_path }}"
+        owner: root
+        group: root
+        mode: "0755"
+      notify: Restart WireGuard HA timer
+
+    - name: Deploy WireGuard HA systemd service
+      ansible.builtin.template:
+        src: templates/wg-ha-check.service.j2
+        dest: /etc/systemd/system/wg-ha-check.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload systemd
+        - Restart WireGuard HA timer
+
+    - name: Deploy WireGuard HA systemd timer
+      ansible.builtin.template:
+        src: templates/wg-ha-check.timer.j2
+        dest: /etc/systemd/system/wg-ha-check.timer
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload systemd
+        - Restart WireGuard HA timer
+
+    - name: Enable and start WireGuard HA timer
+      ansible.builtin.systemd:
+        name: wg-ha-check.timer
+        enabled: true
+        state: started
+        daemon_reload: true
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Restart WireGuard HA timer
+      ansible.builtin.systemd:
+        name: wg-ha-check.timer
+        state: restarted
+        enabled: true
+        daemon_reload: true
+
+    - name: Restart WireGuard
+      ansible.builtin.systemd:
+        name: wg-quick@wg0
+        state: restarted
