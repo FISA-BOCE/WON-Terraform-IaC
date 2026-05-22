@@ -172,7 +172,7 @@ outputs.tf
 3. providers.tf에서 AWS Provider 설정
 4. security-groups.tf에서 망별 Security Group 생성
 5. rds.tf에서 RDS Subnet Group 및 RDS 생성
-6. redis.tf에서 기존 VPC/Subnet 조회 후 Redis EC2 생성
+6. redis.tf에서 기존 VPC 조회 후 Redis EC2 생성
 7. scripts/install-redis.sh.tpl로 Redis EC2 부팅 시 Redis 설치 및 실행
 8. outputs.tf에서 생성된 RDS Endpoint와 Redis EC2 접속 정보 출력
 ```
@@ -540,7 +540,7 @@ Remove-Item plan.txt -Force -ErrorAction SilentlyContinue
 초기화한다.
 
 ```powershell
-terraform init -reconfigure
+terraform init
 ```
 
 코드 포맷을 정리한다.
@@ -595,9 +595,8 @@ Terraform apply 후 생성되는 리소스는 다음과 같다.
 
 Redis는 ElastiCache Endpoint가 아니라 EC2 Private IP 기준으로 연결한다.
 
-Redis용 Security Group은 Terraform에서 새로 생성하지 않는다.
+Redis용 Security Group은 Terraform에서 새로 생성한다.
 
-대신 기존 Security Group을 조회하여 Redis EC2에 연결한다.
 
 - 카드망 Redis: `boce-card-wg-sg`
 - 증권망 Redis: `boce-securities-test-sg`
