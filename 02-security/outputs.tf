@@ -26,6 +26,20 @@ output "test_security_group_names" {
   }
 }
 
+output "ai_db_security_group_ids" {
+  description = "AI DB EC2 security group IDs by VPC key"
+  value = {
+    for key, security_group in aws_security_group.ai_db : key => security_group.id
+  }
+}
+
+output "ai_db_security_group_names" {
+  description = "AI DB EC2 security group names by VPC key"
+  value = {
+    for key, security_group in aws_security_group.ai_db : key => security_group.name
+  }
+}
+
 output "vpc_ids" {
   description = "VPC IDs where security groups are created"
   value = {
