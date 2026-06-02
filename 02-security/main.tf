@@ -104,6 +104,39 @@ resource "aws_security_group" "test" {
   })
 }
 
+resource "aws_security_group" "ansible_bastion_server" {
+  for_each = local.ansible_bastion_vpcs
+
+  name        = "${each.key}-ansible-bastion-server-sg"
+  description = "Security group for Ansible bastion server EC2"
+  vpc_id      = each.value.id
+
+  ingress {
+    description = "SSH from anywhere"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = [
+      "0.0.0.0/0"
+    ]
+  }
+
+  egress {
+    description = "Allow all outbound"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = [
+      "0.0.0.0/0"
+    ]
+  }
+
+  tags = merge(var.default_tags, {
+    Name = "${each.key}-ansible-bastion-server-sg"
+    Vpc  = each.key
+  })
+}
+
 resource "aws_security_group" "ai_db" {
   for_each = local.wireguard_vpcs
 

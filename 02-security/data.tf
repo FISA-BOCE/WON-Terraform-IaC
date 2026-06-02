@@ -18,4 +18,9 @@ locals {
     for key, vpc in local.vpcs : key => vpc
     if contains(["card", "securities"], key)
   }
+
+  ansible_bastion_vpcs = {
+    for key, vpc in local.vpcs : key => vpc
+    if contains(["card", "securities", "common"], key)
+  }
 }

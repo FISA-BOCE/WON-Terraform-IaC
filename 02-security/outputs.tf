@@ -26,6 +26,20 @@ output "test_security_group_names" {
   }
 }
 
+output "ansible_bastion_server_security_group_ids" {
+  description = "Ansible bastion server EC2 security group IDs by VPC key"
+  value = {
+    for key, security_group in aws_security_group.ansible_bastion_server : key => security_group.id
+  }
+}
+
+output "ansible_bastion_server_security_group_names" {
+  description = "Ansible bastion server EC2 security group names by VPC key"
+  value = {
+    for key, security_group in aws_security_group.ansible_bastion_server : key => security_group.name
+  }
+}
+
 output "ai_db_security_group_ids" {
   description = "AI DB EC2 security group IDs by VPC key"
   value = {
