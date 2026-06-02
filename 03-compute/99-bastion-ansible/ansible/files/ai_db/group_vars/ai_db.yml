@@ -1,0 +1,13 @@
+---
+mysql_bind_address: "0.0.0.0"
+mysql_port: 3306
+mysql_root_password: "ChangeMe-MysqlRoot-2026!"
+mysql_database_name: "ai_db"
+mysql_app_user: "ai_user"
+mysql_app_password: "ChangeMe-AiUser-2026!"
+
+neo4j_listen_address: "0.0.0.0"
+neo4j_bolt_port: 7687
+neo4j_http_port: 7474
+neo4j_https_port: 7473
+neo4j_initial_password: "ChangeMe-Neo4j-2026!"

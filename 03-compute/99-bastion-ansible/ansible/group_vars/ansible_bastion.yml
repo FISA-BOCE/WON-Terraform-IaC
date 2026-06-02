@@ -1,0 +1,20 @@
+---
+ansible_bastion_packages:
+  - ansible
+  - python3-pip
+  - python3-venv
+  - git
+  - curl
+  - unzip
+  - jq
+
+ai_db_project_dir: /home/ubuntu/ansible/ai_db
+ai_db_ssh_key_path: /home/ubuntu/.ssh/boce-keypair.pem
+
+ai_db_targets:
+  card:
+    mysql_host: 10.11.41.81
+    neo4j_host: 10.11.41.82
+  securities:
+    mysql_host: 10.21.41.81
+    neo4j_host: 10.21.41.82

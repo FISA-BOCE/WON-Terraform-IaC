@@ -1,0 +1,16 @@
+server.default_listen_address={{ neo4j_listen_address }}
+server.default_advertised_address={{ ansible_host }}
+
+server.bolt.enabled=true
+server.bolt.listen_address=:{{ neo4j_bolt_port }}
+server.bolt.advertised_address=:{{ neo4j_bolt_port }}
+
+server.http.enabled=true
+server.http.listen_address=:{{ neo4j_http_port }}
+server.http.advertised_address=:{{ neo4j_http_port }}
+
+server.https.enabled=false
+server.https.listen_address=:{{ neo4j_https_port }}
+server.https.advertised_address=:{{ neo4j_https_port }}
+
+dbms.security.auth_enabled=true

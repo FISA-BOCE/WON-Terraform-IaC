@@ -1,0 +1,99 @@
+---
+- name: Install Ansible on bastion servers
+  hosts: ansible_bastion
+  become: true
+
+  tasks:
+    - name: Wait for SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 180
+
+    - name: Install apt repository management package
+      ansible.builtin.apt:
+        name: software-properties-common
+        state: present
+        update_cache: true
+
+    - name: Ensure Ubuntu universe repository is enabled
+      ansible.builtin.command: add-apt-repository -y universe
+      changed_when: false
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install Ansible and support packages
+      ansible.builtin.apt:
+        name: "{{ ansible_bastion_packages }}"
+        state: present
+
+    - name: Verify Ansible installation
+      ansible.builtin.command: ansible --version
+      register: ansible_version
+      changed_when: false
+
+    - name: Print installed Ansible version
+      ansible.builtin.debug:
+        msg: "{{ inventory_hostname }}: {{ ansible_version.stdout_lines[0] }}"
+
+    - name: Ensure ubuntu SSH directory exists
+      ansible.builtin.file:
+        path: /home/ubuntu/.ssh
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0700"
+      when: vpc in ai_db_targets
+
+    - name: Copy DB access private key to bastion
+      ansible.builtin.copy:
+        src: "{{ ansible_ssh_private_key_file }}"
+        dest: "{{ ai_db_ssh_key_path }}"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0400"
+      when: vpc in ai_db_targets
+
+    - name: Ensure AI DB Ansible project directory exists
+      ansible.builtin.file:
+        path: "{{ ai_db_project_dir }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+      when: vpc in ai_db_targets
+
+    - name: Copy AI DB Ansible project files
+      ansible.builtin.copy:
+        src: files/ai_db/
+        dest: "{{ ai_db_project_dir }}/"
+        owner: ubuntu
+        group: ubuntu
+        mode: preserve
+      when: vpc in ai_db_targets
+
+    - name: Install MySQL Ansible collection on bastion
+      ansible.builtin.command: ansible-galaxy collection install community.mysql
+      become_user: ubuntu
+      register: mysql_collection_install
+      changed_when: "'was installed successfully' in mysql_collection_install.stdout"
+      when: vpc in ai_db_targets
+
+    - name: Deploy VPC-specific AI DB inventory
+      ansible.builtin.template:
+        src: templates/ai_db_inventory.yml.j2
+        dest: "{{ ai_db_project_dir }}/inventory.yml"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0644"
+      when: vpc in ai_db_targets
+
+    - name: Ensure AI DB run script is executable
+      ansible.builtin.file:
+        path: "{{ ai_db_project_dir }}/run-ai-db-ansible.sh"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+      when: vpc in ai_db_targets
