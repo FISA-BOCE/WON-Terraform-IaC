@@ -1,0 +1,21 @@
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# SSH keys and certificates
+*.pem
+*.key
+*.pub
+
+# Local overrides
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Local CLI configuration
+.terraformrc
+terraform.rc
