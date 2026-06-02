@@ -112,12 +112,12 @@ resource "aws_security_group" "ansible_bastion_server" {
   vpc_id      = each.value.id
 
   ingress {
-    description = "SSH from 58.234.140.57"
+    description = "SSH from anywhere"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = [
-      "58.234.140.57/32"
+      "0.0.0.0/0"
     ]
   }
 
