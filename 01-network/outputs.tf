@@ -26,6 +26,20 @@ output "public_route_table_ids" {
   }
 }
 
+output "private_route_table_ids" {
+  description = "Private route table IDs by VPC key"
+  value = {
+    for key, route_table in aws_route_table.private : key => route_table.id
+  }
+}
+
+output "nat_gateway_ids" {
+  description = "NAT Gateway IDs by VPC key"
+  value = {
+    for key, nat_gateway in aws_nat_gateway.this : key => nat_gateway.id
+  }
+}
+
 output "boce_key_pair_name" {
   description = "AWS key pair name for EC2 instances"
   value       = aws_key_pair.boce_key.key_name
