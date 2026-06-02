@@ -127,6 +127,12 @@ locals {
       az_idx  = 0
       public  = false
     }
+    common-bastion-public-subnet = {
+      vpc_key = "common"
+      cidr    = "10.31.51.0/24"
+      az_idx  = 0
+      public  = true
+    }
   }
 
   public_vpcs = {
@@ -157,9 +163,9 @@ resource "aws_vpc" "this" {
 
 resource "aws_default_security_group" "this" {
   for_each = aws_vpc.this
-  vpc_id  = each.value.id
-  ingress = []
-  egress  = []
+  vpc_id   = each.value.id
+  ingress  = []
+  egress   = []
   tags = merge(var.default_tags, {
     Name = "${local.vpcs[each.key].name}-default-sg"
   })
