@@ -92,7 +92,7 @@
 
     - name: Print MySQL version
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }}: {{ mysql_version.stdout }}"
+        msg: "{{ inventory_hostname }}: {{ mysql_version.stdout | default('mysql version output unavailable') }}"
 
   handlers:
     - name: Restart MySQL
@@ -166,7 +166,7 @@
 
     - name: Print Neo4j version
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }}: {{ neo4j_version.stdout }}"
+        msg: "{{ inventory_hostname }}: {{ neo4j_version.stdout | default('neo4j version output unavailable') }}"
 
   handlers:
     - name: Restart Neo4j

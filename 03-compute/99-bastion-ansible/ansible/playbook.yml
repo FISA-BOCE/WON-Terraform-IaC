@@ -36,7 +36,7 @@
 
     - name: Print installed Ansible version
       ansible.builtin.debug:
-        msg: "{{ inventory_hostname }}: {{ ansible_version.stdout_lines[0] }}"
+        msg: "{{ inventory_hostname }}: {{ ansible_version.stdout | default('ansible version output unavailable') }}"
 
     - name: Ensure ubuntu SSH directory exists
       ansible.builtin.file:
