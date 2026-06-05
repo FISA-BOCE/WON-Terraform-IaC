@@ -37,6 +37,12 @@ variable "node_max_size" {
   default = 4
 }
 
+variable "argocd_chart_version" {
+  description = "ArgoCD Helm chart version"
+  type        = string
+  default     = "7.6.12"
+}
+
 variable "default_tags" {
   description = "Default tags"
   type        = map(string)
