@@ -32,9 +32,9 @@ resource "aws_security_group_rule" "eks_cluster_sg_ingress_from_vpc" {
   type              = "ingress"
   security_group_id = aws_eks_cluster.this[each.key].vpc_config[0].cluster_security_group_id
 
-  from_port   = 0
-  to_port     = 0
-  protocol    = "-1"
+  from_port = 0
+  to_port   = 0
+  protocol  = "-1"
   cidr_blocks = [
     data.terraform_remote_state.network.outputs.vpc_cidrs[each.value.vpc_key]
   ]
