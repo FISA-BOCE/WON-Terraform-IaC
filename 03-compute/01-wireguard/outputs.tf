@@ -42,9 +42,9 @@ output "wireguard_iam_instance_profile_name" {
 }
 
 output "wireguard_route_table_ids" {
-  description = "WireGuard route table IDs by VPC key"
+  description = "Private route table IDs containing WireGuard on-prem routes by VPC key"
   value = {
-    for key, route_table in aws_route_table.wireguard : key => route_table.id
+    for key, route in local.wireguard_routes : key => data.terraform_remote_state.network.outputs.private_route_table_ids[key]
   }
 }
 
