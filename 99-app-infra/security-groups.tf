@@ -55,6 +55,19 @@ resource "aws_vpc_security_group_ingress_rule" "rds_mysql_from_app" {
   description = "Allow MySQL from ${each.key} app"
 }
 
+resource "aws_vpc_security_group_ingress_rule" "rds_mysql_from_eks" {
+  for_each = var.rds_networks
+
+  security_group_id            = aws_security_group.rds_mysql[each.key].id
+  referenced_security_group_id = data.terraform_remote_state.eks.outputs.eks_cluster_security_group_ids[each.key]
+
+  ip_protocol = "tcp"
+  from_port   = 3306
+  to_port     = 3306
+
+  description = "Allow MySQL from ${each.key} EKS"
+}
+
 resource "aws_vpc_security_group_egress_rule" "rds_all_egress" {
   for_each = var.rds_networks
 
@@ -72,7 +85,7 @@ resource "aws_vpc_security_group_egress_rule" "rds_all_egress" {
 # =========================================================
 
 resource "aws_security_group" "redis" {
-  for_each = var.rds_networks
+  for_each = var.enable_redis ? var.rds_networks : {}
 
   name        = "${var.project}-${var.env}-${each.key}-redis-sg"
   description = "Allow Redis access from ${each.key} app only"
@@ -88,7 +101,7 @@ resource "aws_security_group" "redis" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "redis_from_app" {
-  for_each = var.rds_networks
+  for_each = var.enable_redis ? var.rds_networks : {}
 
   security_group_id            = aws_security_group.redis[each.key].id
   referenced_security_group_id = aws_security_group.app[each.key].id
@@ -101,7 +114,7 @@ resource "aws_vpc_security_group_ingress_rule" "redis_from_app" {
 }
 
 resource "aws_vpc_security_group_egress_rule" "redis_all_egress" {
-  for_each = var.rds_networks
+  for_each = var.enable_redis ? var.rds_networks : {}
 
   security_group_id = aws_security_group.redis[each.key].id
 
