@@ -32,3 +32,17 @@ output "ecr_repository_urls" {
     key => repo.repository_url
   }
 }
+
+output "argocd_namespaces" {
+  value = {
+    card       = kubernetes_namespace.argocd_card.metadata[0].name
+    securities = kubernetes_namespace.argocd_securities.metadata[0].name
+  }
+}
+
+output "argocd_release_names" {
+  value = {
+    card       = helm_release.argocd_card.name
+    securities = helm_release.argocd_securities.name
+  }
+}
