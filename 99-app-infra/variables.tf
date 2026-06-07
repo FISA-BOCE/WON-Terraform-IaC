@@ -34,6 +34,12 @@ variable "rds_networks" {
   }))
 }
 
+variable "eks_state_path" {
+  description = "Path to the EKS Terraform state used to allow EKS security groups to access RDS"
+  type        = string
+  default     = "../03-compute/03-eks/terraform.tfstate"
+}
+
 variable "db_passwords" {
   description = "RDS passwords by network"
   type        = map(string)
@@ -96,6 +102,12 @@ variable "ec2_associate_public_ip_address" {
 # Redis EC2
 # =========================================================
 
+variable "enable_redis" {
+  description = "Whether to create Redis EC2 nodes and Redis security groups"
+  type        = bool
+  default     = false
+}
+
 variable "redis_instance_type" {
   description = "EC2 instance type for Redis nodes"
   type        = string
@@ -124,6 +136,7 @@ variable "redis_password" {
   description = "Redis password used in redis.conf requirepass"
   type        = string
   sensitive   = true
+  default     = null
 }
 
 # =========================================================
@@ -138,6 +151,7 @@ variable "redis_networks" {
     vpc_name = string
     vpc_cidr = string
   }))
+  default = {}
 }
 
 # =========================================================
@@ -154,4 +168,5 @@ variable "redis_nodes" {
     subnet_cidr = string
     private_ip  = string
   }))
+  default = {}
 }
