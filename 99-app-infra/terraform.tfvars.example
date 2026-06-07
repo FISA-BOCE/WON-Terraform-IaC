@@ -23,7 +23,7 @@ rds_networks = {
       "subnet-card-data-layer-private-02-id"
     ]
 
-    db_name     = "wonhaeyocard"
+    db_name     = "won_card_channel_db"
     db_username = "admin"
   }
 
@@ -35,10 +35,14 @@ rds_networks = {
       "subnet-securities-data-layer-private-02-id"
     ]
 
-    db_name     = "wonhaeyoinvest"
+    db_name     = "won_invest_channel_db"
     db_username = "admin"
-    db_password = "CHANGE_ME_SECURITIES_DB_PASSWORD"
   }
+}
+
+db_passwords = {
+  card       = "CHANGE_ME_CARD_DB_PASSWORD"
+  securities = "CHANGE_ME_SECURITIES_DB_PASSWORD"
 }
 
 db_instance_class     = "db.t4g.micro"
@@ -50,6 +54,8 @@ rds_multi_az          = true
 # =========================================================
 # Redis EC2 Common
 # =========================================================
+
+enable_redis = false
 
 ec2_ami_id                      = "ami-0765f9741eedf9c7b"
 ec2_key_name                    = "boce-keypair"
