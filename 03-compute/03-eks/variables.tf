@@ -43,6 +43,17 @@ variable "argocd_chart_version" {
   default     = "7.6.12"
 }
 
+variable "github_actions_allowed_repositories" {
+  description = "GitHub repositories allowed to assume the ECR push role through OIDC"
+  type        = list(string)
+
+  default = [
+    "FISA-BOCE/WON-Card-Channel-SERVER",
+    "FISA-BOCE/WON-Invest-Channel-SERVER",
+    "FISA-BOCE/WON-Common-SERVER"
+  ]
+}
+
 variable "default_tags" {
   description = "Default tags"
   type        = map(string)

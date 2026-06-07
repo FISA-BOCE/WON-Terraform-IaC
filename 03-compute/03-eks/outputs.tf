@@ -46,3 +46,7 @@ output "argocd_release_names" {
     securities = helm_release.argocd_securities.name
   }
 }
+
+output "github_actions_ecr_push_role_arn" {
+  value = aws_iam_role.github_actions_ecr_push.arn
+}
