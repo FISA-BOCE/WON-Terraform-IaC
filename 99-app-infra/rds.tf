@@ -6,7 +6,7 @@
 # =========================================================
 
 resource "aws_db_subnet_group" "rds_data" {
-  for_each = var.rds_networks
+  for_each = local.rds_networks
 
   name        = "${var.project}-${var.env}-${each.key}-rds-data-subnet-group"
   description = "RDS DB subnet group for ${each.key} private data subnets"
@@ -22,7 +22,7 @@ resource "aws_db_subnet_group" "rds_data" {
 }
 
 resource "aws_db_instance" "mysql" {
-  for_each = var.rds_networks
+  for_each = local.rds_networks
 
   identifier = "${var.project}-${var.env}-${each.key}-mysql"
 

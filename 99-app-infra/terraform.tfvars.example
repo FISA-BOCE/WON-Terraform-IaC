@@ -14,27 +14,13 @@ env     = "dev"
 # 실제 값은 로컬 terraform.tfvars에서 변경한다.
 # =========================================================
 
-rds_networks = {
+rds_databases = {
   card = {
-    vpc_id = "vpc-0d3e23bcbd0f5a040"
-
-    data_subnet_ids = [
-      "subnet-card-data-layer-private-01-id",
-      "subnet-card-data-layer-private-02-id"
-    ]
-
     db_name     = "won_card_channel_db"
     db_username = "admin"
   }
 
   securities = {
-    vpc_id = "vpc-0a7d58018059ba4b7"
-
-    data_subnet_ids = [
-      "subnet-securities-data-layer-private-01-id",
-      "subnet-securities-data-layer-private-02-id"
-    ]
-
     db_name     = "won_invest_channel_db"
     db_username = "admin"
   }
