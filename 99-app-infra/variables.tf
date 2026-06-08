@@ -24,14 +24,18 @@ variable "env" {
 # Network - Existing VPC / Subnet / Security Group
 # =========================================================
 
-variable "rds_networks" {
-  description = "RDS network definitions for card and securities"
+variable "rds_databases" {
+  description = "RDS database definitions for card and securities. VPC and subnet IDs are loaded from the 01-network remote state."
   type = map(object({
-    vpc_id          = string
-    data_subnet_ids = list(string)
-    db_name         = string
-    db_username     = string
+    db_name     = string
+    db_username = string
   }))
+}
+
+variable "network_state_path" {
+  description = "Path to the network Terraform state used to load VPC and subnet IDs"
+  type        = string
+  default     = "../01-network/terraform.tfstate"
 }
 
 variable "eks_state_path" {
