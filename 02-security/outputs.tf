@@ -40,6 +40,20 @@ output "ansible_bastion_server_security_group_names" {
   }
 }
 
+output "nginx_security_group_ids" {
+  description = "Nginx security group IDs by VPC key"
+  value = {
+    for key, security_group in aws_security_group.nginx : key => security_group.id
+  }
+}
+
+output "nginx_security_group_names" {
+  description = "Nginx security group names by VPC key"
+  value = {
+    for key, security_group in aws_security_group.nginx : key => security_group.name
+  }
+}
+
 output "ai_db_security_group_ids" {
   description = "AI DB EC2 security group IDs by VPC key"
   value = {
