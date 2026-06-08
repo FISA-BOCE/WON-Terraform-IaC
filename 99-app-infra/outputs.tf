@@ -27,6 +27,14 @@ output "rds_security_group_ids" {
   }
 }
 
+output "app_security_group_ids" {
+  description = "Application Security Group IDs allowed to access RDS and Redis by network"
+  value = {
+    for key, sg in aws_security_group.app :
+    key => sg.id
+  }
+}
+
 # =========================================================
 # Redis EC2 Outputs
 # ElastiCache Endpoint가 아니라 EC2 Private IP/DNS 기준으로 출력

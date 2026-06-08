@@ -17,7 +17,7 @@
 # ---------------------------------------------------------
 
 data "aws_vpc" "redis_networks" {
-  for_each = var.redis_networks
+  for_each = var.enable_redis ? var.redis_networks : {}
 
   filter {
     name   = "tag:Name"
@@ -36,7 +36,7 @@ data "aws_vpc" "redis_networks" {
 # ---------------------------------------------------------
 
 data "aws_subnet" "redis_subnets" {
-  for_each = var.redis_nodes
+  for_each = var.enable_redis ? var.redis_nodes : {}
 
   filter {
     name   = "tag:Name"
@@ -61,7 +61,7 @@ data "aws_subnet" "redis_subnets" {
 # ---------------------------------------------------------
 
 resource "aws_instance" "redis" {
-  for_each = var.redis_nodes
+  for_each = var.enable_redis ? var.redis_nodes : {}
 
   ami           = var.ec2_ami_id
   instance_type = var.redis_instance_type
