@@ -153,20 +153,25 @@ locals {
     if !subnet.public
   }
 
-  nat_vpcs = {
+  private_route_table_vpcs = {
     for key, vpc in local.vpcs : key => vpc
     if contains(["card", "securities", "common"], key)
   }
 
-  nat_public_subnet_keys = {
-    card       = "card-wireguard-public-subnet-01"
-    securities = "securities-wireguard-public-subnet-01"
-    common     = "common-bastion-public-subnet"
+  nat_vpcs = {
+    for key, vpc in local.vpcs : key => vpc
+    if contains(["common"], key)
   }
 
-  nat_private_subnets = {
+  nat_public_subnet_keys = {
+    common = "common-bastion-public-subnet"
+    //securities = "securities-wireguard-public-subnet-01"
+    //common     = "common-bastion-public-subnet"
+  }
+
+  private_route_table_subnets = {
     for key, subnet in local.private_subnets : key => subnet
-    if contains(keys(local.nat_vpcs), subnet.vpc_key)
+    if contains(keys(local.private_route_table_vpcs), subnet.vpc_key)
   }
 }
 
@@ -267,7 +272,7 @@ resource "aws_nat_gateway" "this" {
 }
 
 resource "aws_route_table" "private" {
-  for_each = local.nat_vpcs
+  for_each = local.private_route_table_vpcs
 
   vpc_id = aws_vpc.this[each.key].id
 
@@ -285,7 +290,7 @@ resource "aws_route" "private_default" {
 }
 
 resource "aws_route_table_association" "private" {
-  for_each = local.nat_private_subnets
+  for_each = local.private_route_table_subnets
 
   subnet_id      = aws_subnet.this[each.key].id
   route_table_id = aws_route_table.private[each.value.vpc_key].id
