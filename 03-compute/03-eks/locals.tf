@@ -52,5 +52,9 @@ locals {
     invest = {
       name = "won-invest-channel-server"
     }
+
+    common = {
+      name = "won-common-server"
+    }
   }
 }
