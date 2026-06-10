@@ -155,12 +155,13 @@ locals {
 
   nat_vpcs = {
     for key, vpc in local.vpcs : key => vpc
-    if contains(["card", "securities"], key)
+    if contains(["card", "securities", "common"], key)
   }
 
   nat_public_subnet_keys = {
     card       = "card-wireguard-public-subnet-01"
     securities = "securities-wireguard-public-subnet-01"
+    common     = "common-bastion-public-subnet"
   }
 
   nat_private_subnets = {
