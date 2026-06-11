@@ -26,11 +26,11 @@ resource "aws_security_group" "endpoint" {
   vpc_id      = data.terraform_remote_state.network.outputs.vpc_ids[each.value.vpc_key]
 
   ingress {
-    description = "PrivateLink endpoint listener"
-    from_port   = var.endpoint_listener_port
-    to_port     = var.endpoint_listener_port
-    protocol    = "tcp"
-    cidr_blocks = [data.terraform_remote_state.network.outputs.vpc_cidrs[each.value.vpc_key]]
+    description = "Allow all inbound traffic to the PrivateLink endpoint ENI"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
