@@ -49,6 +49,42 @@ resource "aws_api_gateway_resource" "service_proxy" {
   path_part   = "{proxy+}"
 }
 
+resource "aws_api_gateway_resource" "chat" {
+  rest_api_id = aws_api_gateway_rest_api.mobile.id
+  parent_id   = aws_api_gateway_resource.api.id
+  path_part   = "chat"
+}
+
+resource "aws_api_gateway_resource" "users" {
+  rest_api_id = aws_api_gateway_rest_api.mobile.id
+  parent_id   = aws_api_gateway_resource.api.id
+  path_part   = "users"
+}
+
+resource "aws_api_gateway_resource" "users_me" {
+  rest_api_id = aws_api_gateway_rest_api.mobile.id
+  parent_id   = aws_api_gateway_resource.users.id
+  path_part   = "me"
+}
+
+resource "aws_api_gateway_resource" "users_me_proxy" {
+  rest_api_id = aws_api_gateway_rest_api.mobile.id
+  parent_id   = aws_api_gateway_resource.users_me.id
+  path_part   = "{proxy+}"
+}
+
+resource "aws_api_gateway_resource" "auth" {
+  rest_api_id = aws_api_gateway_rest_api.mobile.id
+  parent_id   = aws_api_gateway_resource.api.id
+  path_part   = "auth"
+}
+
+resource "aws_api_gateway_resource" "auth_proxy" {
+  rest_api_id = aws_api_gateway_rest_api.mobile.id
+  parent_id   = aws_api_gateway_resource.auth.id
+  path_part   = "{proxy+}"
+}
+
 resource "aws_api_gateway_method" "service_any" {
   for_each = local.backend_routes
 
@@ -63,6 +99,42 @@ resource "aws_api_gateway_method" "service_proxy_any" {
 
   rest_api_id   = aws_api_gateway_rest_api.mobile.id
   resource_id   = aws_api_gateway_resource.service_proxy[each.key].id
+  http_method   = "ANY"
+  authorization = "NONE"
+
+  request_parameters = {
+    "method.request.path.proxy" = true
+  }
+}
+
+resource "aws_api_gateway_method" "chat_any" {
+  rest_api_id   = aws_api_gateway_rest_api.mobile.id
+  resource_id   = aws_api_gateway_resource.chat.id
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "users_me_any" {
+  rest_api_id   = aws_api_gateway_rest_api.mobile.id
+  resource_id   = aws_api_gateway_resource.users_me.id
+  http_method   = "ANY"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_method" "users_me_proxy_any" {
+  rest_api_id   = aws_api_gateway_rest_api.mobile.id
+  resource_id   = aws_api_gateway_resource.users_me_proxy.id
+  http_method   = "ANY"
+  authorization = "NONE"
+
+  request_parameters = {
+    "method.request.path.proxy" = true
+  }
+}
+
+resource "aws_api_gateway_method" "auth_proxy_any" {
+  rest_api_id   = aws_api_gateway_rest_api.mobile.id
+  resource_id   = aws_api_gateway_resource.auth_proxy.id
   http_method   = "ANY"
   authorization = "NONE"
 
@@ -101,6 +173,58 @@ resource "aws_api_gateway_integration" "service_proxy_any" {
   }
 }
 
+resource "aws_api_gateway_integration" "chat_any" {
+  rest_api_id             = aws_api_gateway_rest_api.mobile.id
+  resource_id             = aws_api_gateway_resource.chat.id
+  http_method             = aws_api_gateway_method.chat_any.http_method
+  integration_http_method = "ANY"
+  type                    = "HTTP_PROXY"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_api_gateway_vpc_link.backend["cards"].id
+  uri                     = "http://${local.backend_routes["cards"].nlb_dns_name}:${var.ngnix_listener_port}/api/chat"
+}
+
+resource "aws_api_gateway_integration" "users_me_any" {
+  rest_api_id             = aws_api_gateway_rest_api.mobile.id
+  resource_id             = aws_api_gateway_resource.users_me.id
+  http_method             = aws_api_gateway_method.users_me_any.http_method
+  integration_http_method = "ANY"
+  type                    = "HTTP_PROXY"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_api_gateway_vpc_link.backend["cards"].id
+  uri                     = "http://${local.backend_routes["cards"].nlb_dns_name}:${var.ngnix_listener_port}/api/users/me"
+}
+
+resource "aws_api_gateway_integration" "users_me_proxy_any" {
+  rest_api_id             = aws_api_gateway_rest_api.mobile.id
+  resource_id             = aws_api_gateway_resource.users_me_proxy.id
+  http_method             = aws_api_gateway_method.users_me_proxy_any.http_method
+  integration_http_method = "ANY"
+  type                    = "HTTP_PROXY"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_api_gateway_vpc_link.backend["cards"].id
+  uri                     = "http://${local.backend_routes["cards"].nlb_dns_name}:${var.ngnix_listener_port}/api/users/me/{proxy}"
+
+  request_parameters = {
+    "integration.request.path.proxy" = "method.request.path.proxy"
+  }
+}
+
+resource "aws_api_gateway_integration" "auth_proxy_any" {
+  rest_api_id             = aws_api_gateway_rest_api.mobile.id
+  resource_id             = aws_api_gateway_resource.auth_proxy.id
+  http_method             = aws_api_gateway_method.auth_proxy_any.http_method
+  integration_http_method = "ANY"
+  type                    = "HTTP_PROXY"
+  connection_type         = "VPC_LINK"
+  connection_id           = aws_api_gateway_vpc_link.backend["cards"].id
+  uri                     = "http://${local.backend_routes["cards"].nlb_dns_name}:${var.ngnix_listener_port}/api/auth/{proxy}"
+
+  request_parameters = {
+    "integration.request.path.proxy" = "method.request.path.proxy"
+  }
+}
+
 resource "aws_api_gateway_deployment" "mobile" {
   rest_api_id = aws_api_gateway_rest_api.mobile.id
 
@@ -109,15 +233,35 @@ resource "aws_api_gateway_deployment" "mobile" {
       resources = concat(
         [aws_api_gateway_resource.api.id],
         [for resource in aws_api_gateway_resource.service : resource.id],
-        [for resource in aws_api_gateway_resource.service_proxy : resource.id]
+        [for resource in aws_api_gateway_resource.service_proxy : resource.id],
+        [
+          aws_api_gateway_resource.chat.id,
+          aws_api_gateway_resource.users.id,
+          aws_api_gateway_resource.users_me.id,
+          aws_api_gateway_resource.users_me_proxy.id,
+          aws_api_gateway_resource.auth.id,
+          aws_api_gateway_resource.auth_proxy.id
+        ]
       )
       methods = concat(
         [for method in aws_api_gateway_method.service_any : method.id],
-        [for method in aws_api_gateway_method.service_proxy_any : method.id]
+        [for method in aws_api_gateway_method.service_proxy_any : method.id],
+        [
+          aws_api_gateway_method.chat_any.id,
+          aws_api_gateway_method.users_me_any.id,
+          aws_api_gateway_method.users_me_proxy_any.id,
+          aws_api_gateway_method.auth_proxy_any.id
+        ]
       )
       integrations = concat(
         [for integration in aws_api_gateway_integration.service_any : integration.id],
-        [for integration in aws_api_gateway_integration.service_proxy_any : integration.id]
+        [for integration in aws_api_gateway_integration.service_proxy_any : integration.id],
+        [
+          aws_api_gateway_integration.chat_any.id,
+          aws_api_gateway_integration.users_me_any.id,
+          aws_api_gateway_integration.users_me_proxy_any.id,
+          aws_api_gateway_integration.auth_proxy_any.id
+        ]
       )
     }))
   }
@@ -128,7 +272,11 @@ resource "aws_api_gateway_deployment" "mobile" {
 
   depends_on = [
     aws_api_gateway_integration.service_any,
-    aws_api_gateway_integration.service_proxy_any
+    aws_api_gateway_integration.service_proxy_any,
+    aws_api_gateway_integration.chat_any,
+    aws_api_gateway_integration.users_me_any,
+    aws_api_gateway_integration.users_me_proxy_any,
+    aws_api_gateway_integration.auth_proxy_any
   ]
 }
 
