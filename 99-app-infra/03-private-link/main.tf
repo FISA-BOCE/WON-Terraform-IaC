@@ -2,7 +2,7 @@ resource "aws_vpc_endpoint_service" "this" {
   for_each = local.endpoint_services
 
   acceptance_required        = false
-  network_load_balancer_arns = [data.terraform_remote_state.loadbalancer.outputs.dmz_nlb_arns[each.key]]
+  network_load_balancer_arns = [data.terraform_remote_state.loadbalancer.outputs.dmz_privatelink_nlb_arns[each.key]]
 
   tags = merge(var.default_tags, {
     Name = "${each.value.name}-endpoint-service"
