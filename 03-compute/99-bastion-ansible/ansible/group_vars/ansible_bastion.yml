@@ -11,6 +11,11 @@ ansible_bastion_packages:
 ai_db_project_dir: /home/ubuntu/ansible/ai_db
 ai_db_ssh_key_path: /home/ubuntu/.ssh/boce-keypair.pem
 
+private_key_targets:
+  - card
+  - securities
+  - common
+
 ai_db_targets:
   card:
     mysql_host: 10.11.41.81

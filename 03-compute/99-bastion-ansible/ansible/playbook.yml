@@ -45,7 +45,7 @@
         owner: ubuntu
         group: ubuntu
         mode: "0700"
-      when: vpc in ai_db_targets
+      when: vpc in private_key_targets
 
     - name: Copy DB access private key to bastion
       ansible.builtin.copy:
@@ -54,7 +54,7 @@
         owner: ubuntu
         group: ubuntu
         mode: "0400"
-      when: vpc in ai_db_targets
+      when: vpc in private_key_targets
 
     - name: Ensure AI DB Ansible project directory exists
       ansible.builtin.file:
