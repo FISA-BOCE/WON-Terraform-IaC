@@ -55,4 +55,27 @@ locals {
       subnet_key  = "common-server-private-subnet"
     }
   }
+
+  private_link_dns_records = {
+    card_to_common_was = {
+      zone_vpc_key = "card"
+      endpoint_key = "common_to_card_eks"
+      name         = "common-was"
+    }
+    securities_to_common_was = {
+      zone_vpc_key = "securities"
+      endpoint_key = "common_to_securities_eks"
+      name         = "common-was"
+    }
+    common_to_card_was = {
+      zone_vpc_key = "common"
+      endpoint_key = "card_to_common_server"
+      name         = "card-was"
+    }
+    common_to_securities_was = {
+      zone_vpc_key = "common"
+      endpoint_key = "securities_to_common_server"
+      name         = "securities-was"
+    }
+  }
 }

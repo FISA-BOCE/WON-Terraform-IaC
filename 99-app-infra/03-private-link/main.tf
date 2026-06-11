@@ -77,3 +77,33 @@ resource "aws_vpc_endpoint" "this" {
     aws_vpc_endpoint_service_allowed_principal.current_account
   ]
 }
+
+resource "aws_route53_zone" "private_link" {
+  for_each = local.vpcs
+
+  name = "internal"
+
+  vpc {
+    vpc_id = data.terraform_remote_state.network.outputs.vpc_ids[each.key]
+  }
+
+  tags = merge(var.default_tags, {
+    Name = "${each.key}-internal-zone"
+    Vpc  = each.key
+    Role = "private-link-dns"
+  })
+}
+
+resource "aws_route53_record" "private_link" {
+  for_each = local.private_link_dns_records
+
+  zone_id = aws_route53_zone.private_link[each.value.zone_vpc_key].zone_id
+  name    = each.value.name
+  type    = "A"
+
+  alias {
+    name                   = aws_vpc_endpoint.this[each.value.endpoint_key].dns_entry[0].dns_name
+    zone_id                = aws_vpc_endpoint.this[each.value.endpoint_key].dns_entry[0].hosted_zone_id
+    evaluate_target_health = false
+  }
+}
