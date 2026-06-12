@@ -47,6 +47,25 @@
         mode: "0700"
       when: vpc in private_key_targets
 
+    - name: Ensure bastion known_hosts file exists
+      ansible.builtin.file:
+        path: /home/ubuntu/.ssh/known_hosts
+        state: touch
+        owner: ubuntu
+        group: ubuntu
+        mode: "0644"
+      when: vpc in redis_targets
+
+    - name: Populate Redis host keys in bastion known_hosts
+      ansible.builtin.shell: |
+        ssh-keygen -F {{ item }} -f /home/ubuntu/.ssh/known_hosts >/dev/null || ssh-keyscan -H {{ item }} >> /home/ubuntu/.ssh/known_hosts
+      args:
+        executable: /bin/bash
+      become_user: ubuntu
+      changed_when: false
+      loop: "{{ [redis_targets[vpc].master.host] + (redis_targets[vpc].replicas | map(attribute='host') | list) }}"
+      when: vpc in redis_targets
+
     - name: Copy DB access private key to bastion
       ansible.builtin.copy:
         src: "{{ ansible_ssh_private_key_file }}"
