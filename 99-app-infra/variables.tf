@@ -32,6 +32,17 @@ variable "rds_databases" {
   }))
 }
 
+variable "rds_networks" {
+  description = "Legacy RDS network definitions kept for compatibility with existing terraform.tfvars. New resources use rds_databases plus remote state outputs."
+  type = map(object({
+    vpc_id          = string
+    data_subnet_ids = list(string)
+    db_name         = string
+    db_username     = string
+  }))
+  default = {}
+}
+
 variable "network_state_path" {
   description = "Path to the network Terraform state used to load VPC and subnet IDs"
   type        = string
