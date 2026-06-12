@@ -9,6 +9,11 @@ locals {
       "securities-data-layer-private-subnet-01",
       "securities-data-layer-private-subnet-02"
     ]
+
+    common = [
+      "common-data-layer-private-subnet-01",
+      "common-data-layer-private-subnet-02"
+    ]
   }
 
   rds_networks = {
@@ -21,5 +26,12 @@ locals {
       db_name     = database.db_name
       db_username = database.db_username
     }
+  }
+
+  eks_cluster_security_group_ids = try(data.terraform_remote_state.eks.outputs.eks_cluster_security_group_ids, {})
+
+  rds_networks_with_eks = {
+    for key, network in local.rds_networks : key => network
+    if contains(keys(local.eks_cluster_security_group_ids), key)
   }
 }
