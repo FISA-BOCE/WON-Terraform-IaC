@@ -56,10 +56,10 @@ resource "aws_vpc_security_group_ingress_rule" "rds_mysql_from_app" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "rds_mysql_from_eks" {
-  for_each = local.rds_networks
+  for_each = local.rds_networks_with_eks
 
   security_group_id            = aws_security_group.rds_mysql[each.key].id
-  referenced_security_group_id = data.terraform_remote_state.eks.outputs.eks_cluster_security_group_ids[each.key]
+  referenced_security_group_id = local.eks_cluster_security_group_ids[each.key]
 
   ip_protocol = "tcp"
   from_port   = 3306

@@ -24,11 +24,17 @@ rds_databases = {
     db_name     = "won_invest_channel_db"
     db_username = "admin"
   }
+
+  common = {
+    db_name     = "won_common_channel_db"
+    db_username = "admin"
+  }
 }
 
 db_passwords = {
   card       = "CHANGE_ME_CARD_DB_PASSWORD"
   securities = "CHANGE_ME_SECURITIES_DB_PASSWORD"
+  common     = "CHANGE_ME_COMMON_DB_PASSWORD"
 }
 
 db_instance_class     = "db.t4g.micro"
