@@ -65,6 +65,15 @@
         mode: "0755"
       when: vpc in ai_db_targets
 
+    - name: Ensure Redis Ansible project directory exists
+      ansible.builtin.file:
+        path: "{{ redis_project_dir }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+      when: vpc in redis_targets
+
     - name: Copy AI DB Ansible project files
       ansible.builtin.copy:
         src: files/ai_db/
@@ -73,6 +82,15 @@
         group: ubuntu
         mode: preserve
       when: vpc in ai_db_targets
+
+    - name: Copy Redis Ansible project files
+      ansible.builtin.copy:
+        src: files/redis/
+        dest: "{{ redis_project_dir }}/"
+        owner: ubuntu
+        group: ubuntu
+        mode: preserve
+      when: vpc in redis_targets
 
     - name: Install MySQL Ansible collection on bastion
       ansible.builtin.command: ansible-galaxy collection install community.mysql
@@ -90,6 +108,15 @@
         mode: "0644"
       when: vpc in ai_db_targets
 
+    - name: Deploy VPC-specific Redis inventory
+      ansible.builtin.template:
+        src: templates/redis_inventory.yml.j2
+        dest: "{{ redis_project_dir }}/inventory.yml"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0644"
+      when: vpc in redis_targets
+
     - name: Ensure AI DB run script is executable
       ansible.builtin.file:
         path: "{{ ai_db_project_dir }}/run-ai-db-ansible.sh"
@@ -97,3 +124,11 @@
         group: ubuntu
         mode: "0755"
       when: vpc in ai_db_targets
+
+    - name: Ensure Redis run script is executable
+      ansible.builtin.file:
+        path: "{{ redis_project_dir }}/run-redis-ansible.sh"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+      when: vpc in redis_targets
