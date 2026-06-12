@@ -127,6 +127,18 @@ locals {
       az_idx  = 0
       public  = false
     }
+    common-data-layer-private-subnet-01 = {
+      vpc_key = "common"
+      cidr    = "10.31.31.0/24"
+      az_idx  = 0
+      public  = false
+    }
+    common-data-layer-private-subnet-02 = {
+      vpc_key = "common"
+      cidr    = "10.31.32.0/24"
+      az_idx  = 1
+      public  = false
+    }
     common-bastion-public-subnet = {
       vpc_key = "common"
       cidr    = "10.31.51.0/24"
@@ -164,9 +176,9 @@ locals {
   }
 
   nat_public_subnet_keys = {
-    common = "common-bastion-public-subnet"
+    common     = "common-bastion-public-subnet"
     securities = "securities-wireguard-public-subnet-01"
-    card     = "card-wireguard-public-subnet-01"
+    card       = "card-wireguard-public-subnet-01"
   }
 
   private_route_table_subnets = {
