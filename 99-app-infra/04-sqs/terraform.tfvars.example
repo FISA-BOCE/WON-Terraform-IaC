@@ -1,0 +1,16 @@
+aws_region = "ap-northeast-2"
+
+project = "wonhaeyo"
+env     = "dev"
+
+enable_sqs = true
+
+sqs_visibility_timeout_seconds = 360
+sqs_message_retention_seconds  = 1209600
+sqs_receive_wait_time_seconds  = 10
+sqs_max_receive_count          = 5
+
+eks_node_role_names = {
+  card       = "won-card-eks-node-role"
+  securities = "won-securities-eks-node-role"
+}
