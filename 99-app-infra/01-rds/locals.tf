@@ -16,7 +16,7 @@ locals {
     ]
   }
 
-  rds_networks = length(var.rds_networks) > 0 ? var.rds_networks : {
+  rds_networks = {
     for key, database in var.rds_databases : key => {
       vpc_id = data.terraform_remote_state.network.outputs.vpc_ids[key]
       data_subnet_ids = [
