@@ -1,0 +1,22 @@
+all:
+  children:
+    redis:
+      hosts:
+        {{ vpc }}_redis_01:
+          ansible_host: {{ redis_targets[vpc].master.host }}
+          redis_node_name: {{ redis_targets[vpc].master.name }}
+          redis_private_ip: {{ redis_targets[vpc].master.host }}
+        {{ vpc }}_redis_replica_01:
+          ansible_host: {{ redis_targets[vpc].replicas[0].host }}
+          redis_node_name: {{ redis_targets[vpc].replicas[0].name }}
+          redis_private_ip: {{ redis_targets[vpc].replicas[0].host }}
+        {{ vpc }}_redis_replica_02:
+          ansible_host: {{ redis_targets[vpc].replicas[1].host }}
+          redis_node_name: {{ redis_targets[vpc].replicas[1].name }}
+          redis_private_ip: {{ redis_targets[vpc].replicas[1].host }}
+  vars:
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: {{ ai_db_ssh_key_path }}
+    ansible_ssh_common_args: "-o UserKnownHostsFile=/home/ubuntu/.ssh/known_hosts"
+    redis_sentinel_master_name: {{ redis_targets[vpc].sentinel_master_name }}
+    redis_bootstrap_master_private_ip: {{ redis_targets[vpc].master.host }}

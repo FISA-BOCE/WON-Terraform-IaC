@@ -1,0 +1,37 @@
+# =========================================================
+# Common
+# =========================================================
+
+aws_region = "ap-northeast-2"
+
+project = "wonhaeyo"
+env     = "dev"
+
+# =========================================================
+# Existing RDS Values
+# RDS는 기존 rds.tf 기준으로 단일 MySQL RDS를 생성한다.
+# 아래 값은 RDS가 배치될 VPC, Private Data Subnet, 접근 허용 대상 WAS/EKS SG ID로 변경한다.
+# 실제 값은 로컬 terraform.tfvars에서 변경한다.
+# =========================================================
+
+rds_databases = {
+  card = {
+    db_name     = "won_card_channel_db"
+    db_username = "admin"
+  }
+
+  securities = {
+    db_name     = "won_invest_channel_db"
+    db_username = "admin"
+  }
+}
+
+db_passwords = {
+  card       = "CHANGE_ME_CARD_DB_PASSWORD"
+  securities = "CHANGE_ME_SECURITIES_DB_PASSWORD"
+}
+
+db_instance_class     = "db.t4g.micro"
+allocated_storage     = 20
+max_allocated_storage = 100
+rds_multi_az          = true

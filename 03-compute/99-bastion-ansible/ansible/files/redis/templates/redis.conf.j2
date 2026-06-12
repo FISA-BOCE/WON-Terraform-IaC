@@ -1,0 +1,15 @@
+bind {{ redis_bind_address }}
+protected-mode yes
+port {{ redis_port }}
+supervised systemd
+daemonize no
+dir /var/lib/redis
+dbfilename dump.rdb
+appendonly {{ redis_appendonly }}
+appendfilename "appendonly.aof"
+requirepass {{ redis_password }}
+masterauth {{ redis_password }}
+logfile /var/log/redis/redis-server.log
+{% if redis_role != "master" %}
+replicaof {{ redis_master_private_ip }} {{ redis_port }}
+{% endif %}

@@ -1,0 +1,11 @@
+bind {{ redis_bind_address }}
+protected-mode no
+port {{ redis_sentinel_port }}
+supervised systemd
+dir /var/lib/redis-sentinel
+logfile /var/log/redis/sentinel.log
+sentinel monitor {{ redis_sentinel_master_name }} {{ redis_master_private_ip }} {{ redis_port }} {{ redis_sentinel_quorum }}
+sentinel auth-pass {{ redis_sentinel_master_name }} {{ redis_password }}
+sentinel down-after-milliseconds {{ redis_sentinel_master_name }} {{ redis_sentinel_down_after_milliseconds }}
+sentinel failover-timeout {{ redis_sentinel_master_name }} {{ redis_sentinel_failover_timeout }}
+sentinel parallel-syncs {{ redis_sentinel_master_name }} {{ redis_sentinel_parallel_syncs }}
