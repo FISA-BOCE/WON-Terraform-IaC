@@ -1,6 +1,8 @@
 
 # WON해요 Data Layer IaC 구성 가이드
 
+> 참고: Redis Sentinel HA Terraform 코드는 현재 `99-app-infra`가 아니라 `03-compute/05-redis`에서 관리한다.
+
 ## 1. 문서 목적
 
 본 문서는 WON해요 프로젝트의 AWS Data Layer 구성을 Terraform IaC로 관리하기 위한 가이드이다.
@@ -17,8 +19,8 @@
 - EC2 부팅 시 `user_data`로 Redis 설치 및 실행
 - Terraform 실행 및 AWS 리소스 생성 확인 절차 정리
 
-> 현재 범위는 Redis EC2 생성 및 Redis Server 설치까지이다.  
-> Redis Cluster, Sentinel, Replication, 자동 Failover 구성은 별도 작업 범위로 분리한다.
+> 현재 범위는 카드망과 증권망 각각의 Redis EC2 3대를 유지하면서
+> Redis Server + Redis Sentinel을 함께 구성하는 Sentinel 기반 HA까지 포함한다.
 
 ---
 
@@ -59,7 +61,7 @@ securities-vpc
 | Redis 노드 수     | 3대                   | 3대                        |
 | OS             | Ubuntu 24.04 LTS        | Ubuntu 24.04 LTS          |
 | AMI            | `ami-0765f9741eedf9c7b` | `ami-0765f9741eedf9c7b`   |
-| Instance Type  | `m6i.large`             | `m6i.large`               |
+| Instance Type  | `t3.small`              | `t3.small`                |
 | Public IP      | 비활성화                 | 비활성화                   |
 | Storage        | 20GB gp3                | 20GB gp3                  |
 | Security Group | Terraform 신규 생성      | Terraform 신규 생성         |
@@ -118,11 +120,15 @@ infra/
    ├─ security-groups.tf
    ├─ rds.tf
    ├─ redis.tf
+   ├─ modules/
+   │  └─ redis-sentinel/
+   │     ├─ main.tf
+   │     ├─ variables.tf
+   │     ├─ outputs.tf
+   │     └─ user_data.sh.tpl
    ├─ outputs.tf
    ├─ terraform.tfvars.example
    ├─ terraform.tfvars
-   └─ scripts/
-      └─ install-redis.sh.tpl
 ```
 
 ---
@@ -133,13 +139,13 @@ infra/
 |---|---|
 | `providers.tf` | Terraform과 AWS Provider 설정 |
 | `variables.tf` | Terraform 코드에서 사용할 입력 변수 정의 |
-| `security-groups.tf` | 카드망/증권망별 App, RDS, Redis Security Group 생성 |
+| `security-groups.tf` | 카드망/증권망별 App, RDS Security Group 생성 |
 | `rds.tf` | RDS DB Subnet Group과 RDS MySQL Instance 생성 |
-| `redis.tf` | EC2 기반 Self-managed Redis 인스턴스 생성 |
-| `outputs.tf` | 생성된 RDS Endpoint, Redis Private IP, Instance ID 출력 |
+| `redis.tf` | 카드망/증권망별 Redis Sentinel HA 모듈 호출 |
+| `modules/redis-sentinel/*` | Redis EC2, Redis SG, Sentinel user_data, 관련 출력 정의 |
+| `outputs.tf` | 생성된 RDS Endpoint, Redis Private IP, Sentinel Endpoint, Instance ID 출력 |
 | `terraform.tfvars.example` | 팀원 공유용 변수 예시 파일 |
 | `terraform.tfvars` | 실제 변수값 입력 파일, Git 커밋 제외 |
-| `scripts/install-redis.sh.tpl` | Redis EC2 부팅 시 Redis 설치 및 실행 스크립트 |
 
 ---
 
@@ -172,8 +178,8 @@ outputs.tf
 3. providers.tf에서 AWS Provider 설정
 4. security-groups.tf에서 망별 Security Group 생성
 5. rds.tf에서 RDS Subnet Group 및 RDS 생성
-6. redis.tf에서 기존 VPC 조회 후 Redis EC2 생성
-7. scripts/install-redis.sh.tpl로 Redis EC2 부팅 시 Redis 설치 및 실행
+6. redis.tf에서 기존 VPC/Subnet 조회 후 망별 redis-sentinel 모듈 호출
+7. modules/redis-sentinel/user_data.sh.tpl로 Redis Server와 Redis Sentinel 함께 설치 및 실행
 8. outputs.tf에서 생성된 RDS Endpoint와 Redis EC2 접속 정보 출력
 ```
 
@@ -301,7 +307,7 @@ ec2_ami_id                      = "ami-0765f9741eedf9c7b"
 ec2_key_name                    = "boce-keypair"
 ec2_associate_public_ip_address = false
 
-redis_instance_type    = "m6i.large"
+redis_instance_type    = "t3.small"
 redis_root_volume_size = 20
 redis_root_volume_type = "gp3"
 redis_port             = 6379
@@ -392,7 +398,7 @@ redis_nodes = {
 | `ec2_ami_id` | Redis EC2 AMI ID | `ami-0765f9741eedf9c7b` |
 | `ec2_key_name` | Redis EC2 Key Pair 이름 | `boce-keypair` |
 | `ec2_associate_public_ip_address` | Redis EC2 Public IP 자동 할당 여부 | `false` |
-| `redis_instance_type` | Redis EC2 인스턴스 타입 | `m6i.large` |
+| `redis_instance_type` | Redis EC2 인스턴스 타입 | `t3.small` |
 | `redis_root_volume_size` | Redis EC2 Root Volume 크기 | `20` |
 | `redis_root_volume_type` | Redis EC2 Root Volume 타입 | `gp3` |
 | `redis_port` | Redis 서비스 포트 | `6379` |
@@ -453,19 +459,18 @@ card-app-sg       → card-redis-sg:6379
 securities-app-sg → securities-redis-sg:6379
 ```
 
-### 11.3 Redis Cluster 구성 시 추가 검토 사항
+### 11.3 Redis Sentinel HA 구성 시 추가 검토 사항
 
-현재 Security Group은 Redis 단일 포트 접근 기준으로 구성되어 있다.
+현재 Security Group은 Redis 6379와 Sentinel 26379을 함께 허용하도록 구성한다.
 
-Redis Cluster 또는 Sentinel을 구성하려면 Redis 노드 간 통신 규칙을 추가해야 한다.
+Redis 노드 간 복제와 Sentinel 합의가 필요하므로 Redis 노드 간 통신 규칙이 포함되어야 한다.
 
 | 구성 | 추가 검토 포트 |
 |---|---:|
 | Redis 노드 간 통신 | 6379 |
-| Redis Cluster bus | 16379 |
 | Redis Sentinel | 26379 |
 
-현재 Terraform 범위에는 Redis Cluster/Sentinel 구성과 해당 포트 규칙이 포함되지 않는다.
+현재 Terraform 범위에는 Redis Sentinel HA 구성과 해당 포트 규칙이 포함된다.
 
 ---
 
@@ -692,7 +697,7 @@ securities-redis-03
 
 ```text
 Instance state: Running
-Instance type: m6i.large
+Instance type: t3.small
 Private IPv4 address: 지정한 IP
 Public IPv4 address: 없음
 Root volume: 20GB gp3
@@ -769,7 +774,7 @@ aws ec2 describe-instances `
 
 ```text
 State = running
-Type = m6i.large
+Type = t3.small
 PublicIp = null
 PrivateIp = 지정한 고정 Private IP
 ```
@@ -1060,10 +1065,10 @@ aws ec2 start-instances --instance-ids <REDIS_INSTANCE_ID>
 주의 사항:
 
 ```text
-현재 Terraform 구성은 카드망 Redis EC2 3대와 증권망 Redis EC2 3대, 총 6대를 생성하지만,
-Redis Sentinel 또는 Redis Cluster 자동 장애 전환까지 설정하지 않는다.
+현재 Terraform 구성은 카드망 Redis EC2 3대와 증권망 Redis EC2 3대, 총 6대에
+Redis Server와 Redis Sentinel을 함께 구성하여 Master-Replica 기반 자동 장애 전환을 수행한다.
 
-자동 Failover가 필요하면 Redis Sentinel 또는 Redis Cluster 구성을 별도 이슈로 분리한다.
+Redis Cluster 샤딩은 이번 범위가 아니며, 장애 조치는 Sentinel quorum 2 기준으로 처리한다.
 ```
 
 ---
@@ -1253,8 +1258,8 @@ systemctl status redis-server
 7. Redis EC2는 고정 Private IP를 사용한다.
 8. Redis EC2에는 Terraform에서 신규 생성한 Redis Security Group을 연결한다.
 9. Redis는 6379 포트로 접근한다.
-10. Redis Cluster, Sentinel, 자동 Failover는 이번 Terraform 범위에 포함하지 않는다.
-11. EKS/WAS는 Terraform output으로 나온 RDS Endpoint와 Redis Private IP를 Secret으로 주입받아 연결한다.
+10. Redis는 Redis Cluster가 아니라 Sentinel 기반 Master-Replica HA로 구성한다.
+11. EKS/WAS는 Redis 단일 IP가 아니라 Sentinel master name과 Sentinel endpoint 목록으로 연결한다.
 ```
 
 한 줄로 정리하면 다음과 같다.

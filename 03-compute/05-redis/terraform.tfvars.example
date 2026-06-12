@@ -1,0 +1,73 @@
+aws_region = "ap-northeast-2"
+
+project = "wonhaeyo"
+env     = "dev"
+
+redis_ami_id           = "ami-0765f9741eedf9c7b"
+redis_instance_type    = "t3.small"
+redis_root_volume_size = 20
+redis_root_volume_type = "gp3"
+redis_port             = 6379
+redis_sentinel_port    = 26379
+
+redis_networks = {
+  card = {
+    vpc_key                        = "card"
+    sentinel_master_name           = "card-redis-master"
+    master_node_key                = "card_redis_01"
+    ssh_allowed_cidrs              = []
+    ssh_allowed_security_group_ids = []
+  }
+
+  securities = {
+    vpc_key                        = "securities"
+    sentinel_master_name           = "invest-redis-master"
+    master_node_key                = "securities_redis_01"
+    ssh_allowed_cidrs              = []
+    ssh_allowed_security_group_ids = []
+  }
+}
+
+redis_nodes = {
+  card_redis_01 = {
+    name        = "card-redis-01"
+    network_key = "card"
+    subnet_key  = "card-data-layer-private-subnet-01"
+    private_ip  = "10.11.31.101"
+  }
+
+  card_redis_02 = {
+    name        = "card-redis-02"
+    network_key = "card"
+    subnet_key  = "card-data-layer-private-subnet-01"
+    private_ip  = "10.11.31.102"
+  }
+
+  card_redis_03 = {
+    name        = "card-redis-03"
+    network_key = "card"
+    subnet_key  = "card-data-layer-private-subnet-02"
+    private_ip  = "10.11.32.103"
+  }
+
+  securities_redis_01 = {
+    name        = "securities-redis-01"
+    network_key = "securities"
+    subnet_key  = "securities-data-layer-private-subnet-01"
+    private_ip  = "10.21.31.101"
+  }
+
+  securities_redis_02 = {
+    name        = "securities-redis-02"
+    network_key = "securities"
+    subnet_key  = "securities-data-layer-private-subnet-01"
+    private_ip  = "10.21.31.102"
+  }
+
+  securities_redis_03 = {
+    name        = "securities-redis-03"
+    network_key = "securities"
+    subnet_key  = "securities-data-layer-private-subnet-02"
+    private_ip  = "10.21.32.103"
+  }
+}

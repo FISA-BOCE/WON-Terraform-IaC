@@ -1,0 +1,134 @@
+---
+- name: Configure Redis Sentinel HA servers
+  hosts: redis
+  become: true
+  serial: 1
+
+  pre_tasks:
+    - name: Wait for SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 180
+
+    - name: Detect current Redis master from Sentinel
+      ansible.builtin.command: redis-cli -p {{ redis_sentinel_port }} sentinel get-master-addr-by-name {{ redis_sentinel_master_name }}
+      register: live_sentinel_master_lookup
+      changed_when: false
+      failed_when: false
+
+    - name: Set Redis topology facts for this host
+      ansible.builtin.set_fact:
+        redis_master_private_ip: "{{ live_sentinel_master_lookup.stdout_lines[0] if (live_sentinel_master_lookup.rc == 0 and (live_sentinel_master_lookup.stdout_lines | length) > 0) else redis_bootstrap_master_private_ip }}"
+        redis_role: "{{ 'master' if redis_private_ip == (live_sentinel_master_lookup.stdout_lines[0] if (live_sentinel_master_lookup.rc == 0 and (live_sentinel_master_lookup.stdout_lines | length) > 0) else redis_bootstrap_master_private_ip) else 'replica' }}"
+
+    - name: Install apt repository management package
+      ansible.builtin.apt:
+        name: software-properties-common
+        state: present
+        update_cache: true
+
+    - name: Ensure Ubuntu universe repository is enabled
+      ansible.builtin.command: add-apt-repository -y universe
+      changed_when: false
+      when: ansible_distribution == "Ubuntu"
+
+    - name: Install Redis packages
+      ansible.builtin.apt:
+        name:
+          - redis-server
+          - redis-tools
+        state: present
+        update_cache: true
+
+  tasks:
+    - name: Ensure Redis directories exist
+      ansible.builtin.file:
+        path: "{{ item.path }}"
+        state: directory
+        owner: "{{ item.owner }}"
+        group: "{{ item.group }}"
+        mode: "{{ item.mode }}"
+      loop:
+        - { path: "/var/lib/redis", owner: "redis", group: "redis", mode: "0750" }
+        - { path: "/var/log/redis", owner: "redis", group: "redis", mode: "0750" }
+        - { path: "/var/lib/redis-sentinel", owner: "redis", group: "redis", mode: "0750" }
+
+    - name: Deploy Redis configuration
+      ansible.builtin.template:
+        src: templates/redis.conf.j2
+        dest: /etc/redis/redis.conf
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart Redis server
+
+    - name: Deploy Redis Sentinel configuration
+      ansible.builtin.template:
+        src: templates/sentinel.conf.j2
+        dest: /etc/redis/sentinel.conf
+        owner: redis
+        group: redis
+        mode: "0640"
+      notify: Restart Redis Sentinel
+
+    - name: Deploy Redis Sentinel systemd unit
+      ansible.builtin.template:
+        src: templates/redis-sentinel.service.j2
+        dest: /etc/systemd/system/redis-sentinel.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify:
+        - Reload systemd
+        - Restart Redis Sentinel
+
+    - name: Ensure Redis server is enabled and running
+      ansible.builtin.systemd:
+        name: redis-server
+        enabled: true
+        state: started
+
+    - name: Ensure Redis Sentinel is enabled and running
+      ansible.builtin.systemd:
+        name: redis-sentinel
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Verify Redis ping
+      ansible.builtin.command: redis-cli -a "{{ redis_password }}" -p {{ redis_port }} ping
+      register: redis_ping
+      changed_when: false
+      no_log: true
+
+    - name: Verify Redis replication role
+      ansible.builtin.command: redis-cli -a "{{ redis_password }}" -p {{ redis_port }} info replication
+      register: redis_replication_info
+      changed_when: false
+      no_log: true
+
+    - name: Verify Sentinel master discovery
+      ansible.builtin.command: redis-cli -p {{ redis_sentinel_port }} sentinel get-master-addr-by-name {{ redis_sentinel_master_name }}
+      register: sentinel_master_lookup
+      changed_when: false
+
+    - name: Print Redis verification summary
+      ansible.builtin.debug:
+        msg:
+          - "{{ inventory_hostname }} ping={{ redis_ping.stdout | default('n/a') }}"
+          - "{{ inventory_hostname }} role={{ (redis_replication_info.stdout_lines | select('match', '^role:') | list | first | default('role:unknown')) }}"
+          - "{{ inventory_hostname }} sentinel_master={{ sentinel_master_lookup.stdout_lines | join(':') }}"
+
+  handlers:
+    - name: Reload systemd
+      ansible.builtin.systemd:
+        daemon_reload: true
+
+    - name: Restart Redis server
+      ansible.builtin.systemd:
+        name: redis-server
+        state: restarted
+
+    - name: Restart Redis Sentinel
+      ansible.builtin.systemd:
+        name: redis-sentinel
+        state: restarted

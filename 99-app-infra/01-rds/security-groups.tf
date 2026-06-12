@@ -1,8 +1,3 @@
-# =========================================================
-# Application Security Groups
-# - RDS/Redis 접근 주체가 되는 App/WAS/EKS용 SG
-# =========================================================
-
 resource "aws_security_group" "app" {
   for_each = local.rds_networks
 
@@ -18,13 +13,6 @@ resource "aws_security_group" "app" {
     Layer   = "app"
   }
 }
-
-
-# =========================================================
-# RDS Security Groups
-# - 카드망/증권망 각각 RDS MySQL Security Group 생성
-# - Redis는 기존 Security Group을 조회해서 사용하므로 여기서 생성하지 않음
-# =========================================================
 
 resource "aws_security_group" "rds_mysql" {
   for_each = local.rds_networks
@@ -56,10 +44,10 @@ resource "aws_vpc_security_group_ingress_rule" "rds_mysql_from_app" {
 }
 
 resource "aws_vpc_security_group_ingress_rule" "rds_mysql_from_eks" {
-  for_each = local.rds_networks
+  for_each = local.rds_networks_with_eks
 
   security_group_id            = aws_security_group.rds_mysql[each.key].id
-  referenced_security_group_id = data.terraform_remote_state.eks.outputs.eks_cluster_security_group_ids[each.key]
+  referenced_security_group_id = local.eks_cluster_security_group_ids[each.key]
 
   ip_protocol = "tcp"
   from_port   = 3306
@@ -78,6 +66,3 @@ resource "aws_vpc_security_group_egress_rule" "rds_all_egress" {
 
   description = "Default outbound traffic"
 }
-
-
-# Redis SG는 03-compute/05-redis에서 관리

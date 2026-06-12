@@ -9,6 +9,7 @@ ansible_bastion_packages:
   - jq
 
 ai_db_project_dir: /home/ubuntu/ansible/ai_db
+redis_project_dir: /home/ubuntu/ansible/redis
 ai_db_ssh_key_path: /home/ubuntu/.ssh/boce-keypair.pem
 
 private_key_targets:
@@ -23,3 +24,25 @@ ai_db_targets:
   securities:
     mysql_host: 10.21.41.81
     neo4j_host: 10.21.41.82
+
+redis_targets:
+  card:
+    sentinel_master_name: card-redis-master
+    master:
+      name: card-redis-01
+      host: 10.11.31.101
+    replicas:
+      - name: card-redis-02
+        host: 10.11.31.102
+      - name: card-redis-03
+        host: 10.11.32.103
+  securities:
+    sentinel_master_name: invest-redis-master
+    master:
+      name: securities-redis-01
+      host: 10.21.31.101
+    replicas:
+      - name: securities-redis-02
+        host: 10.21.31.102
+      - name: securities-redis-03
+        host: 10.21.32.103

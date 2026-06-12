@@ -1,14 +1,9 @@
-# =========================================================
-# RDS Outputs
-# =========================================================
-
 output "rds_endpoint" {
   description = "RDS MySQL endpoint with port"
   value = {
     for key, db in aws_db_instance.mysql :
     key => db.endpoint
   }
-
 }
 
 output "rds_addresses" {
@@ -28,7 +23,7 @@ output "rds_security_group_ids" {
 }
 
 output "app_security_group_ids" {
-  description = "Application Security Group IDs allowed to access RDS and Redis by network"
+  description = "Application Security Group IDs allowed to access RDS by network"
   value = {
     for key, sg in aws_security_group.app :
     key => sg.id
