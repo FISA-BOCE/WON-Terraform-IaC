@@ -2,11 +2,23 @@
 - name: Configure Redis Sentinel HA servers
   hosts: redis
   become: true
+  serial: 1
 
   pre_tasks:
     - name: Wait for SSH
       ansible.builtin.wait_for_connection:
         timeout: 180
+
+    - name: Detect current Redis master from Sentinel
+      ansible.builtin.command: redis-cli -p {{ redis_sentinel_port }} sentinel get-master-addr-by-name {{ redis_sentinel_master_name }}
+      register: live_sentinel_master_lookup
+      changed_when: false
+      failed_when: false
+
+    - name: Set Redis topology facts for this host
+      ansible.builtin.set_fact:
+        redis_master_private_ip: "{{ live_sentinel_master_lookup.stdout_lines[0] if (live_sentinel_master_lookup.rc == 0 and (live_sentinel_master_lookup.stdout_lines | length) > 0) else redis_bootstrap_master_private_ip }}"
+        redis_role: "{{ 'master' if redis_private_ip == (live_sentinel_master_lookup.stdout_lines[0] if (live_sentinel_master_lookup.rc == 0 and (live_sentinel_master_lookup.stdout_lines | length) > 0) else redis_bootstrap_master_private_ip) else 'replica' }}"
 
     - name: Install apt repository management package
       ansible.builtin.apt:
