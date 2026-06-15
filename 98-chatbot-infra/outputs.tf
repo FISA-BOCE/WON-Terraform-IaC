@@ -118,11 +118,6 @@ output "log_analytics_workspace_id" {
   value       = azurerm_log_analytics_workspace.main.id
 }
 
-output "log_analytics_workspace_key" {
-  description = "Log Analytics Workspace Primary Key"
-  value       = azurerm_log_analytics_workspace.main.primary_shared_key
-  sensitive   = true  # terraform output 시 숨김, terraform output -raw 로 확인
-}
 
 # ── 다음 작업 안내 ────────────────────────
 output "next_steps" {
