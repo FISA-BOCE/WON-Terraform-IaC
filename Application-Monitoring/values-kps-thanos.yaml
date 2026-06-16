@@ -1,0 +1,157 @@
+# kube-prometheus-stack에서 Prometheus 관련 설정 시작
+prometheus:
+  # Prometheus 설치 여부
+  enabled: true
+
+  # Thanos Sidecar에 접근하기 위한 Kubernetes Service 생성 설정
+  thanosService:
+    # Thanos Sidecar용 Service를 생성하겠다는 뜻
+    enabled: true
+
+    # 클러스터 내부에서만 접근 가능한 Service 타입
+    type: ClusterIP
+
+    # Headless Service로 생성
+    # Thanos Query가 Prometheus Sidecar Pod들을 DNS로 직접 찾을 수 있게 함
+    clusterIP: "None"
+
+  # Thanos Sidecar 자체도 Prometheus가 모니터링하게 하는 ServiceMonitor 생성
+  thanosServiceMonitor:
+    # Thanos Sidecar 메트릭도 수집 대상으로 등록
+    enabled: true
+
+  # 실제 Prometheus Pod/StatefulSet에 대한 상세 설정
+  prometheusSpec:
+    # Prometheus를 2개 띄움
+    # prometheus-0, prometheus-1 형태로 생성됨
+    replicas: 2
+
+    # Prometheus 로컬 디스크에 메트릭을 7일간 보관
+    retention: 7d
+
+    # ServiceMonitor를 모든 namespace에서 찾을 수 있게 함
+    # 예: app namespace에 있는 WAS ServiceMonitor도 수집 가능
+    serviceMonitorNamespaceSelector: {}
+
+    # PodMonitor를 모든 namespace에서 찾을 수 있게 함
+    podMonitorNamespaceSelector: {}
+
+    # Helm chart가 기본으로 만든 ServiceMonitor만 보지 않고,
+    # 사용자가 직접 만든 ServiceMonitor도 선택할 수 있게 함
+    serviceMonitorSelectorNilUsesHelmValues: false
+
+    # 사용자가 직접 만든 PodMonitor도 선택할 수 있게 함
+    podMonitorSelectorNilUsesHelmValues: false
+
+    # Prometheus가 저장하는 모든 메트릭에 공통으로 붙는 외부 라벨
+    # 여러 클러스터를 Thanos로 묶을 때 어느 클러스터 데이터인지 구분
+    externalLabels:
+      # 이 Prometheus 데이터는 card-eks 클러스터에서 온 데이터라는 뜻
+      cluster: won-card-eks
+
+    # Prometheus replica를 구분하는 라벨 이름
+    # Thanos Query에서 --query.replica-label=replica 로 중복 제거할 때 사용
+    replicaExternalLabelName: replica
+
+    # Thanos Sidecar 활성화
+    # 이 설정이 있어야 Prometheus Pod 옆에 thanos-sidecar container가 붙음
+    thanos:
+      image: quay.io/thanos/thanos:v0.39.0
+
+    # Prometheus Pod의 CPU/메모리 요청량과 제한량
+    resources:
+      # Kubernetes 스케줄러가 최소 이 정도 리소스를 확보하려고 함
+      requests:
+        # 최소 0.2 vCPU 요청
+        cpu: 200m
+
+        # 최소 메모리 700Mi 요청
+        memory: 700Mi
+
+      # Prometheus가 사용할 수 있는 최대 리소스 제한
+      limits:
+        # 최대 1 vCPU까지 사용 가능
+        cpu: 1000m
+
+        # 최대 메모리 1500Mi까지 사용 가능
+        memory: 1500Mi
+
+    # Prometheus 데이터 저장용 PVC 설정
+    storageSpec:
+      # Prometheus StatefulSet이 사용할 PVC 템플릿
+      volumeClaimTemplate:
+        spec:
+          # EKS에서 사용할 StorageClass 이름
+          # kubectl get storageclass 했을 때 gp2가 있으면 사용 가능
+          storageClassName: gp2
+
+          # EBS 볼륨은 보통 하나의 노드에 ReadWriteOnce로 붙음
+          accessModes:
+            - ReadWriteOnce
+
+          # Prometheus 하나당 요청할 디스크 용량
+          resources:
+            requests:
+              # prometheus-0에 20Gi, prometheus-1에 20Gi
+              # 총 EBS 약 40Gi 생성됨
+              storage: 20Gi
+
+# Grafana 관련 설정 시작
+grafana:
+  # Grafana 설치 여부
+  enabled: true
+
+  sidecar:
+    datasources:
+      defaultDatasourceEnabled: false
+
+  # Grafana에 추가할 datasource 설정
+  additionalDataSources:
+    # Thanos Query를 Grafana datasource로 등록
+    - name: Thanos
+
+      # Thanos Query는 Prometheus 호환 API를 제공하므로 type은 prometheus
+      type: prometheus
+
+      # Grafana 서버가 직접 Thanos Query로 프록시해서 접근
+      access: proxy
+
+      # Grafana가 바라볼 Thanos Query Service 주소
+      # 단, 이 Service는 별도로 thanos-query.yaml로 만들어야 함
+      url: http://thanos-query.monitoring.svc.cluster.local:9090
+
+      # Grafana 기본 datasource로 Thanos를 사용
+      isDefault: true
+
+  # Grafana Pod의 CPU/메모리 설정
+  resources:
+    # Grafana가 최소로 요청하는 리소스
+    requests:
+      # 최소 0.1 vCPU 요청
+      cpu: 100m
+
+      # 최소 메모리 256Mi 요청
+      memory: 256Mi
+
+    # Grafana가 사용할 수 있는 최대 리소스
+    limits:
+      # 최대 0.5 vCPU
+      cpu: 500m
+
+      # 최대 메모리 512Mi
+      memory: 512Mi
+
+# Alertmanager 설치 여부
+# Prometheus 알림 규칙을 받아 Slack, Email 등으로 알림 보낼 때 사용
+alertmanager:
+  enabled: true
+
+# kube-state-metrics 설치 여부
+# Deployment, Pod, Node, StatefulSet 같은 Kubernetes 리소스 상태 메트릭 수집
+kubeStateMetrics:
+  enabled: true
+
+# node-exporter 설치 여부
+# 각 워커노드의 CPU, Memory, Disk, Network 같은 노드 메트릭 수집
+nodeExporter:
+  enabled: true
